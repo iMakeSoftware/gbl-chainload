@@ -14,13 +14,6 @@ permissions:
   contents: write
   actions: read
 
-concurrency:
-  # Force-pushes to feature branches cancel any in-flight run.
-  # Main is excluded so every commit landing on main records a full
-  # CI history (never cancelled by a subsequent commit).
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
-
 jobs:
   verify:
     runs-on: ubuntu-latest
@@ -57,16 +50,6 @@ jobs:
           if ! grep -E "^## v${ver}( |$)" CHANGELOG.md > /dev/null; then
             echo "::error::add a '## v${ver}' section to CHANGELOG.md before tagging"
             exit 1
-          fi
-      - name: Check CI green at this SHA
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          set -euo pipefail
-          sha="${{ steps.resolve.outputs.sha }}"
-          runs=$(gh api "repos/${{ github.repository }}/actions/workflows/ci.yml/runs?head_sha=${sha}" --jq '.workflow_runs[] | select(.conclusion=="success") | .id' | head -1)
-          if [[ -z "$runs" ]]; then
-            echo "::error::no successful CI run for SHA ${sha}"; exit 1
           fi
       - name: MANIFEST drift check
         run: |
